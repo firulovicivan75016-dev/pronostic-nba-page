@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pronostics NBA</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icone-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pronos NBA"><meta name="theme-color" content="#1d4ed8">
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f6f9;
+font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1d2433}
+.boite{background:#fff;border:1px solid #e3e7ee;border-radius:16px;padding:28px 24px;width:min(360px,88vw);text-align:center}
+.ballon{font-size:56px}h1{font-size:22px;margin:8px 0 18px}
+input{width:100%;box-sizing:border-box;font-size:18px;padding:12px;border:1px solid #cfd5e1;border-radius:10px}
+button{width:100%;margin-top:12px;font-size:17px;padding:12px;border:none;border-radius:10px;background:#1d4ed8;color:#fff;font-weight:600}
+#msg{margin-top:14px;color:#6b7385;min-height:20px}.err{color:#d64545!important}
+</style></head><body>
+<div class="boite"><div class="ballon">🏀</div><h1>Pronostics NBA</h1>
+<form id="f"><input type="password" id="mdp" placeholder="Mot de passe" autocomplete="current-password">
+<button>Ouvrir</button></form><div id="msg"></div></div>
+<script>
+const msg = (t, err) => { const m = document.getElementById('msg'); m.textContent = t; m.className = err ? 'err' : ''; };
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function ouvrir(mdp, auto) {
+  msg('Chargement…');
+  let d;
+  try { d = await (await fetch('donnees.json?t=' + Date.now(), {cache: 'no-store'})).json(); }
+  catch (e) { msg('Impossible de charger les pronos. Vérifie ta connexion.', true); return; }
+  try {
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(mdp), 'PBKDF2', false, ['deriveKey']);
+    const cle = await crypto.subtle.deriveKey({name: 'PBKDF2', salt: b64(d.sel), iterations: d.iter, hash: 'SHA-256'},
+      base, {name: 'AES-GCM', length: 256}, false, ['decrypt']);
+    const html = new TextDecoder().decode(await crypto.subtle.decrypt({name: 'AES-GCM', iv: b64(d.iv)}, cle, b64(d.donnees)));
+    localStorage.setItem('mdp_pronos', mdp);
+    document.open(); document.write(html); document.close();
+  } catch (e) {
+    localStorage.removeItem('mdp_pronos');
+    msg(auto ? '' : 'Mot de passe incorrect.', !auto);
+  }
+}
+document.getElementById('f').addEventListener('submit', e => { e.preventDefault(); ouvrir(document.getElementById('mdp').value, false); });
+const memo = localStorage.getItem('mdp_pronos');
+if (memo) ouvrir(memo, true);
+</script></body></html>
