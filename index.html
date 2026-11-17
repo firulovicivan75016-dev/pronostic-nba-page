@@ -16,16 +16,20 @@ input{width:100%;box-sizing:border-box;font-size:18px;padding:12px;border:1px so
 button{width:100%;margin-top:12px;font-size:17px;padding:12px;border:none;border-radius:10px;background:#1d4ed8;color:#fff;font-weight:600}
 #msg{margin-top:14px;color:#6b7385;min-height:20px}.err{color:#d64545!important}
 </style></head><body>
-<div class="boite"><div class="ballon">🏀</div><h1>Pronostics NBA</h1>
+<div class="boite"><div class="ballon" id="ico">🏀</div><h1 id="titre">Pronostics NBA</h1>
 <form id="f"><input type="password" id="mdp" placeholder="Mot de passe" autocomplete="current-password">
 <button>Ouvrir</button></form><div id="msg"></div></div>
 <script>
+if (new URLSearchParams(location.search).get('sport') === 'tennis') {
+  document.getElementById('ico').textContent = '🎾'; document.getElementById('titre').textContent = 'Pronostics tennis';
+}
 const msg = (t, err) => { const m = document.getElementById('msg'); m.textContent = t; m.className = err ? 'err' : ''; };
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 async function ouvrir(mdp, auto) {
   msg('Chargement…');
   let d;
-  try { d = await (await fetch('donnees.json?t=' + Date.now(), {cache: 'no-store'})).json(); }
+  const fichier = new URLSearchParams(location.search).get('sport') === 'tennis' ? 'tennis.json' : 'donnees.json';
+  try { d = await (await fetch(fichier + '?t=' + Date.now(), {cache: 'no-store'})).json(); }
   catch (e) { msg('Impossible de charger les pronos. Vérifie ta connexion.', true); return; }
   try {
     const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(mdp), 'PBKDF2', false, ['deriveKey']);
